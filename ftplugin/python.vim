@@ -3,6 +3,10 @@ let w:slimux_python_allowed_indent0 = ["elif", "else", "except", "finally"]
 
 
 function! SlimuxEscape_python(text)
+  "" Use IPython's '%cpaste' to avoid indentation errors if the option set
+  if exists('g:slimux_python_ipython')
+    return "%cpaste".a:text."--"
+
   "" Check if last line is empty in multiline selections
   let l:last_line_empty = match(a:text,'\n\W*\n$') 
 
