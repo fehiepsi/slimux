@@ -179,7 +179,7 @@ You can use [Python][] and [CoffeeScript][] hooks as examples.
   The string "`#{pane_id}: `" is always prepended to the format so Slimux can identify the selected pane.
 
 - `g:slimux_python_ipython = 1` use `%cpaste` of [IPython](http://ipython.org/) to avoid indentation errors. 
-  It is recommended to set this to `1` if you use IPython for an interactive Python session.
+  You need to set this to `1` if you use IPython for an interactive Python session.
 
 
 ## Other Vim Slime plugins
