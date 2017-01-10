@@ -193,8 +193,45 @@ function! s:SelectPane(tmux_packet, ...)
 
 endfunction
 
-
 function! s:Send(tmux_packet)
+
+    " Pane not selected! Save text and open selection dialog
+    if len(a:tmux_packet["target_pane"]) == 0
+        let s:retry_send = a:tmux_packet
+        return s:SelectPane(a:tmux_packet)
+    endif
+
+    let target = a:tmux_packet["target_pane"]
+    let type = a:tmux_packet["type"]
+
+    if type == "code" || type == "cmd"
+
+      let text = a:tmux_packet["text"]
+
+      if type == "code"
+        call s:ExecFileTypeFn("SlimuxPre_", [target])
+        let text = s:ExecFileTypeFn("SlimuxEscape_", [text])
+      endif
+
+      let named_buffer = s:tmux_version >= '2.0' ? '-b Slimux' : ''
+      call system(g:slimux_tmux_path . ' load-buffer ' . named_buffer . ' -', text)
+      call system(g:slimux_tmux_path . ' paste-buffer ' . named_buffer . ' -t ' . target)
+
+      if type == "code"
+        call s:ExecFileTypeFn("SlimuxPost_", [target])
+      endif
+
+    elseif type == 'keys'
+
+      let keys = a:tmux_packet["keys"]
+      call system(g:slimux_tmux_path . ' send-keys -t " . target . " " . keys)
+
+    endif
+
+endfunction
+
+
+function! s:VSend(tmux_packet)
 
     " Pane not selected! Save text and open selection dialog
     if len(a:tmux_packet["target_pane"]) == 0
@@ -337,6 +374,15 @@ function! SlimuxSendCode(text)
   call s:Send(b:code_packet)
 endfunction
 
+function! SlimuxVSendCode(text)
+  if !exists("b:code_packet")
+    let b:code_packet = { "target_pane": "", "type": "code" }
+  endif
+  let b:code_packet["text"] = a:text
+  call s:VSend(b:code_packet)
+endfunction
+
+
 function! s:SlimeSendRange()  range abort
     if !exists("b:code_packet")
         let b:code_packet = { "target_pane": "", "type": "code" }
@@ -350,7 +396,7 @@ endfunction
 
 command! SlimuxREPLSendLine call SlimuxSendCode(getline(".") . "\n")
 command! SlimuxREPLSendParagraph call SlimuxSendCode(s:GetParagraph())
-command! -range=% -bar -nargs=* SlimuxREPLSendSelection call SlimuxSendCode(s:GetVisual())
+command! -range=% -bar -nargs=* SlimuxREPLSendSelection call SlimuxVSendCode(s:GetVisual())
 command! -range -bar -nargs=0 SlimuxREPLSendLine <line1>,<line2>call s:SlimeSendRange()
 command! -range=% -bar -nargs=* SlimuxREPLSendBuffer call SlimuxSendCode(s:GetBuffer())
 command! SlimuxREPLConfigure call SlimuxConfigureCode()
